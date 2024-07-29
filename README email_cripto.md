@@ -28,10 +28,10 @@ Cada projeto neste repositório tem seu próprio diretório e um arquivo README.
 
 ```bash
 # Navegue até o diretório do projeto
-cd nome-do-projeto
+cd projetos-python
 
 # Execute o projeto
-python nome_do_arquivo.py
+python email_cripto.py
 ```
 
 ## Projetos
