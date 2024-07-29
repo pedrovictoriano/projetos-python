@@ -1,13 +1,10 @@
+import os
 import requests
 import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 import pytz
-import plotly.graph_objs as go
-import plotly.io as pio
-import base64
-from io import BytesIO
 
 # Função para obter dados detalhados de criptomoedas da CoinMarketCap
 
@@ -66,11 +63,11 @@ def format_crypto_data(crypto, data):
             f"<h2>{crypto}</h2>"
             f"<ul>"
             f"<li><strong>Preço:</strong> ${coin_data['price']:.8f}</li>"
-            f"<li><strong>Volume (24h):</strong> ${
+            f"<li><strong>Volume (24h):</strong> {
                 format_large_number(coin_data['volume_24h'])}</li>"
             f"<li><strong>Mudança (24h):</strong> {
                 coin_data['percent_change_24h']:.2f}%</li>"
-            f"<li><strong>Capitalização de Mercado:</strong> ${
+            f"<li><strong>Capitalização de Mercado:</strong> {
                 format_large_number(coin_data['market_cap'])}</li>"
             f"<li><strong>Dominância de Mercado:</strong> {
                 coin_data['market_cap_dominance']:.6f}%</li>"
@@ -102,7 +99,6 @@ def format_fear_greed_index(fgi):
 
 def format_events(events):
     formatted_events = "<h2>Eventos Importantes</h2><ul>"
-    # Ajuste a chave para acessar os dados de eventos corretamente
     for event in events.get('body', []):
         description = event.get('description', 'Sem descrição')
         event_date = datetime.strptime(
@@ -138,14 +134,14 @@ def format_timestamp(timestamp):
     return dt_brazil.strftime('%Y-%m-%d %H:%M:%S')
 
 
-# Configurações
-# Certifique-se de que os símbolos das criptomoedas estão corretos
-cryptos = ['BTC', 'SOL', 'ETH', 'DOG', 'MYRO', 'RENDER', 'NAKA', 'WOLF', 'BANANA', 'IO', 'LISTA', 'NOT']
-coinmarketcap_api_key = '24be4c62-be1a-4dcb-96d5-6e88293e65c4'
-coinmarketcal_api_key = 'behsx2Qt8t5bNPwQ4pCdV9dvhMNAFV267nSAGbIp'
+# Ler variáveis de ambiente
+cryptos = ['BTC', 'SOL', 'ETH', 'DOG', 'MYRO', 'RENDER',
+           'NAKA', 'WOLF', 'BANANA', 'IO', 'LISTA', 'NOT']
+coinmarketcap_api_key = os.getenv('COINMARKETCAP_API_KEY')
+coinmarketcal_api_key = os.getenv('COINMARKETCAL_API_KEY')
 to_email = "pedro.hsilvapro@outlook.com"
 from_email = "pedro.hsilvapro@outlook.com"
-from_password = "06090202p"
+from_password = os.getenv('EMAIL_PASSWORD')
 
 # Obter dados e formatar e-mail
 crypto_data = get_crypto_data(cryptos, coinmarketcap_api_key)
