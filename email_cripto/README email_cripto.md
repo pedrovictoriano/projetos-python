@@ -1,5 +1,5 @@
 # Projetos Python
-Bem-vindo ao repositório `projetos-python`! Este repositório contém diversos projetos e arquivos desenvolvidos em Python, com o objetivo de demonstrar habilidades, explorar novos conceitos e compartilhar conhecimento.
+Bem-vindo ao repositório `projetos-python`!
 
 ## Índice
 - [Sobre](#sobre)
