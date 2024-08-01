@@ -7,6 +7,8 @@ from datetime import datetime, timezone, timedelta
 import pytz
 
 # Função para obter dados detalhados de criptomoedas da CoinMarketCap
+
+
 def get_crypto_data(cryptos, api_key):
     url = 'https://pro-api.coinmarketcap.com/v1/cryptocurrency/quotes/latest'
     headers = {
@@ -17,23 +19,39 @@ def get_crypto_data(cryptos, api_key):
         'symbol': ','.join(cryptos),
         'convert': 'USD'
     }
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao obter dados de criptomoedas: {e}")
+        return {}
 
 # Função para obter o índice de Medo e Ganância
+
+
 def get_fear_greed_index():
     url = 'https://api.alternative.me/fng/'
-    response = requests.get(url)
-    data = response.json()
-    return data['data'][0]
+    try:
+        response = requests.get(url)
+        response.raise_for_status()
+        data = response.json()
+        return data['data'][0]
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao obter índice de Medo e Ganância: {e}")
+        return {}
 
 # Função para converter timestamp do Fear and Greed Index
+
+
 def convert_fng_timestamp(timestamp):
     dt = datetime.fromtimestamp(int(timestamp), tz=timezone.utc)
     dt_brazil = dt.astimezone(pytz.timezone('America/Sao_Paulo'))
     return dt_brazil.strftime('%Y-%m-%d %H:%M:%S')
 
 # Função para obter notícias de criptomoedas da NewsAPI
+
+
 def get_crypto_news(api_key, queries, from_date, to_date):
     url = 'https://newsapi.org/v2/everything'
     headers = {
@@ -49,15 +67,19 @@ def get_crypto_news(api_key, queries, from_date, to_date):
             'sortBy': 'popularity',
             'language': 'en'
         }
-        response = requests.get(url, headers=headers, params=params)
-        news_data = response.json()
-        if 'articles' in news_data:
-            all_news[query] = news_data['articles'][:5]
-        else:
+        try:
+            response = requests.get(url, headers=headers, params=params)
+            response.raise_for_status()
+            news_data = response.json()
+            all_news[query] = news_data.get('articles', [])[:5]
+        except requests.exceptions.RequestException as e:
+            print(f"Erro ao obter notícias para {query}: {e}")
             all_news[query] = []
     return all_news
 
 # Função para obter notícias de curiosidades da NewsAPI
+
+
 def get_top_headlines(api_key, country, category):
     url = 'https://newsapi.org/v2/top-headlines'
     headers = {
@@ -69,22 +91,50 @@ def get_top_headlines(api_key, country, category):
         'category': category,
         'pageSize': 5
     }
-    response = requests.get(url, headers=headers, params=params)
-    return response.json()
+    try:
+        response = requests.get(url, headers=headers, params=params)
+        response.raise_for_status()
+        return response.json()
+    except requests.exceptions.RequestException as e:
+        print(f"Erro ao obter notícias para {country}-{category}: {e}")
+        return []
 
 # Função para formatar dados para o e-mail
+
+
 def format_crypto_data(crypto, data):
     try:
         coin_data = data['data'][crypto]['quote']['USD']
+        coin_name = crypto.capitalize()
+        coin_urls = {
+            'BTC': "https://coinmarketcap.com/currencies/bitcoin/",
+            'ETH': "https://coinmarketcap.com/currencies/ethereum/",
+            'SOL': "https://coinmarketcap.com/currencies/solana/",
+            'DOG': "https://coinmarketcap.com/currencies/dog-go-to-the-moon-rune/",
+            'MYRO': "https://coinmarketcap.com/currencies/myro/",
+            'RENDER': "https://coinmarketcap.com/currencies/render/",
+            'NAKA': "https://coinmarketcap.com/currencies/nakamoto-games/",
+            'WOLF': "https://coinmarketcap.com/currencies/landwolf-sol/",
+            'BANANA': "https://coinmarketcap.com/currencies/banana-gun/",
+            'IO': "https://coinmarketcap.com/currencies/io-net/",
+            'LISTA': "https://coinmarketcap.com/currencies/lista-dao/",
+            'NOT': "https://coinmarketcap.com/currencies/notcoin/"
+        }
+        coin_url = coin_urls.get(crypto, '#')
         formatted_data = (
-            f"<h2>{crypto.capitalize()}</h2>"
+            f"<h2>{coin_name} - <a href='{coin_url}'>{coin_url}</a></h2>"
             f"<ul>"
             f"<li><strong>Preço:</strong> ${coin_data['price']:.8f}</li>"
-            f"<li><strong>Volume (24h):</strong> {format_large_number(coin_data['volume_24h'])}</li>"
-            f"<li><strong>Mudança (24h):</strong> {coin_data['percent_change_24h']:.2f}%</li>"
-            f"<li><strong>Capitalização de Mercado:</strong> {format_large_number(coin_data['market_cap'])}</li>"
-            f"<li><strong>Dominância de Mercado:</strong> {coin_data['market_cap_dominance']:.6f}%</li>"
-            f"<li><strong>Última Atualização:</strong> {format_timestamp(coin_data['last_updated'])}</li>"
+            f"<li><strong>Volume (24h):</strong> {
+                format_large_number(coin_data['volume_24h'])}</li>"
+            f"<li><strong>Mudança (24h):</strong> {
+                coin_data['percent_change_24h']:.2f}%</li>"
+            f"<li><strong>Capitalização de Mercado:</strong> {
+                format_large_number(coin_data['market_cap'])}</li>"
+            f"<li><strong>Dominância de Mercado:</strong> {
+                coin_data.get('market_cap_dominance', 'N/A'):.6f}%</li>"
+            f"<li><strong>Última Atualização:</strong> {
+                format_timestamp(coin_data['last_updated'])}</li>"
             f"</ul>"
         )
         return formatted_data
@@ -92,51 +142,68 @@ def format_crypto_data(crypto, data):
         return f"<h2>{crypto.capitalize()}</h2><p>Dados não disponíveis</p>"
 
 # Função para formatar índice de Medo e Ganância
+
+
 def format_fear_greed_index(fgi):
     formatted_fgi = (
         f"<h2>Índice de Medo e Ganância</h2>"
         f"<ul>"
         f"<li><strong>Índice Atual:</strong> {fgi['value']}</li>"
         f"<li><strong>Descrição:</strong> {fgi['value_classification']}</li>"
-        f"<li><strong>Data:</strong> {convert_fng_timestamp(fgi['timestamp'])}</li>"
+        f"<li><strong>Data:</strong> {
+            convert_fng_timestamp(fgi['timestamp'])}</li>"
         f"</ul>"
     )
     return formatted_fgi
 
 # Função para formatar notícias de criptomoedas
+
+
 def format_crypto_news(news):
     formatted_news = "<h2>Últimas Notícias - Criptomoedas</h2>"
     for crypto, articles in news.items():
         formatted_news += f"<h3>{crypto.capitalize()}</h3><ul>"
         for article in articles:
-            published_at_brazil = convert_to_brazil_time(article['publishedAt'])
+            published_at_brazil = convert_to_brazil_time(
+                article['publishedAt'])
             formatted_news += (
-                f"<li><strong>Autor:</strong> {article.get('author', 'N/A')}<br>"
+                f"<li><strong>Autor:</strong> {
+                    article.get('author', 'N/A')}<br>"
                 f"<strong>Título:</strong> {article['title']}<br>"
-                f"<strong>Data de Publicação:</strong> {published_at_brazil}<br>"
-                f"<strong>URL:</strong> <a href='{article['url']}'>{article['url']}</a></li>"
+                f"<strong>Data de Publicação:</strong> {
+                    published_at_brazil}<br>"
+                f"<strong>URL:</strong> <a href='{
+                    article['url']}'>{article['url']}</a></li>"
             )
         formatted_news += "</ul>"
     return formatted_news
 
 # Função para formatar notícias de curiosidades
+
+
 def format_curiosity_news(news):
     formatted_news = "<h2>Últimas Notícias - Curiosidades</h2>"
     for category, articles in news.items():
         category_name = category.replace("-", " ").title()
         formatted_news += f"<h3>{category_name}</h3><ul>"
         for article in articles:
-            published_at_brazil = convert_to_brazil_time(article['publishedAt'])
+            published_at_brazil = convert_to_brazil_time(
+                article['publishedAt'])
             formatted_news += (
-                f"<li><strong>Autor:</strong> {article.get('author', 'N/A')}<br>"
+                f"<li><strong>Autor:</strong> {
+                    article.get('author', 'N/A')}<br>"
                 f"<strong>Título:</strong> {article['title']}<br>"
-                f"<strong>Data de Publicação:</strong> {published_at_brazil}<br>"
-                f"<strong>URL:</strong> <a href='{article['url']}'>{article['url']}</a></li>"
+                f"<strong>Data de Publicação:</strong> {
+                    published_at_brazil}<br>"
+                f"<strong>URL:</strong> <a href='{
+                    article['url']}'>{article['url']}</a></li>"
             )
         formatted_news += "</ul>"
     return formatted_news
 
 # Função para formatar grandes números de forma legível
+
+
 def format_large_number(num):
     if num >= 1_000_000_000_000:
         return f"{num / 1_000_000_000_000:.2f}T"
@@ -150,25 +217,40 @@ def format_large_number(num):
         return f"{num:.2f}"
 
 # Função para formatar Unix timestamp em data e hora legível com reconhecimento de fuso horário para o Brasil
+
+
 def format_timestamp(timestamp):
     dt_utc = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
     dt_brazil = dt_utc.astimezone(pytz.timezone('America/Sao_Paulo'))
     return dt_brazil.strftime('%Y-%m-%d %H:%M:%S')
 
 # Função para converter data e hora para o fuso horário do Brasil
+
+
 def convert_to_brazil_time(timestamp):
     dt_utc = datetime.fromisoformat(timestamp.replace('Z', '+00:00'))
     dt_brazil = dt_utc.astimezone(pytz.timezone('America/Sao_Paulo'))
     return dt_brazil.strftime('%Y-%m-%d %H:%M:%S')
 
+
 # Ler variáveis de ambiente
-cryptos = ['BTC', 'SOL', 'ETH', 'DOG', 'MYRO', 'RENDER', 'NAKA', 'WOLF', 'BANANA', 'IO', 'LISTA', 'NOT']
-crypto_queries = ['bitcoin', 'solana', 'ethereum', 'doggotothemoon', 'myro', 'render', 'landwolf']
+cryptos = ['BTC', 'SOL', 'ETH', 'DOG', 'MYRO', 'RENDER',
+           'NAKA', 'WOLF', 'BANANA', 'IO', 'LISTA', 'NOT']
+crypto_queries = ['bitcoin', 'solana', 'ethereum',
+                  'doggotothemoon', 'myro', 'render', 'landwolf']
 coinmarketcap_api_key = os.getenv('COINMARKETCAP_API_KEY')
 news_api_key = os.getenv('NEWS_API_KEY')
 to_email = "pedro.hsilvapro@outlook.com"
 from_email = "pedro.hsilvapro@outlook.com"
 from_password = os.getenv('EMAIL_PASSWORD')
+
+# Verificação das variáveis de ambiente
+if not coinmarketcap_api_key:
+    print("CoinMarketCap API Key não encontrada.")
+if not news_api_key:
+    print("News API Key não encontrada.")
+if not from_password:
+    print("Email password não encontrada.")
 
 # Datas para busca de notícias
 today = datetime.now().strftime('%Y-%m-%d')
@@ -177,13 +259,16 @@ yesterday = (datetime.now() - timedelta(1)).strftime('%Y-%m-%d')
 # Obter dados e formatar e-mail
 crypto_data = get_crypto_data(cryptos, coinmarketcap_api_key)
 fgi_data = get_fear_greed_index()
-crypto_news_data = get_crypto_news(news_api_key, crypto_queries, yesterday, today)
+crypto_news_data = get_crypto_news(
+    news_api_key, crypto_queries, yesterday, today)
 curiosity_news_data = {}
 for country in ['br', 'us']:
     for category in ['technology', 'business']:
-        curiosity_news_data[f"{country}-{category}"] = get_top_headlines(news_api_key, country, category)['articles']
+        curiosity_news_data[f"{country}-{category}"] = get_top_headlines(
+            news_api_key, country, category).get('articles', [])
 
-crypto_info = "".join([format_crypto_data(crypto, crypto_data) for crypto in cryptos])
+crypto_info = "".join([format_crypto_data(crypto, crypto_data)
+                      for crypto in cryptos])
 fgi_info = format_fear_greed_index(fgi_data)
 crypto_news_info = format_crypto_news(crypto_news_data)
 curiosity_news_info = format_curiosity_news(curiosity_news_data)
@@ -210,6 +295,8 @@ email_body = f"""
 """
 
 # Função para enviar e-mail
+
+
 def send_email(subject, body, to_email, from_email, from_password):
     msg = MIMEMultipart('alternative')
     msg['From'] = from_email
@@ -225,5 +312,7 @@ def send_email(subject, body, to_email, from_email, from_password):
     server.sendmail(from_email, to_email, msg.as_string())
     server.quit()
 
+
 # Enviar e-mail
-send_email("Atualização Diária de Criptomoedas", email_body, to_email, from_email, from_password)
+send_email("Atualização Diária de Criptomoedas",
+           email_body, to_email, from_email, from_password)
